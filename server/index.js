@@ -3,8 +3,13 @@ const app = express();
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
-
+const EncryptRsa = require('encrypt-rsa').default;
+if (typeof localStorage === "undefined" || localStorage === null) {
+  var LocalStorage = require('node-localstorage').LocalStorage;
+  localStorage = new LocalStorage('./scratch');
+}
 app.use(cors());
+
 
 const server = http.createServer(app);
 
@@ -22,9 +27,21 @@ io.on("connection", (socket) => {
     socket.join(data.room);
     console.log(`${data.userName} Joined: ${data.room}`);
   });
-
   socket.on("sendMessage", (data) => {
-    console.log(data);
+    // console.log(data);
+    // dataofuser = data
+    var encryptedText = encryptRsa.encryptStringWithRsaPublicKey({ 
+      text: data?.message,   
+      publicKey:publicKey2,
+    });
+    console.log(encryptedText)
+
+    const decryptedText = encryptRsa.decryptStringWithRsaPrivateKey({ 
+      text: encryptedText, 
+      privateKey:privateKey2
+    });
+    console.log(decryptedText)
+
     socket.to(data.room).emit("receiveMessage", data);
   });
 
@@ -36,3 +53,14 @@ io.on("connection", (socket) => {
 server.listen(3001, () => {
   console.log("Server is Running...");
 });
+
+const encryptRsa = new EncryptRsa();
+const { privateKey: privateKey1, publicKey: publicKey1 } = encryptRsa.createPrivateAndPublicKeys();
+const encryptRsa2 = new EncryptRsa();
+const { privateKey:privateKey2, publicKey:publicKey2 } = encryptRsa2.createPrivateAndPublicKeys();
+localStorage.setItem("private1", privateKey1)
+localStorage.setItem("public1", publicKey1)
+localStorage.setItem("private2", privateKey2)
+localStorage.setItem("public2", publicKey2)
+
+
